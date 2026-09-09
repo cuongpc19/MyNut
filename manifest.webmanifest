@@ -1,0 +1,34 @@
+{
+  "name": "Ant Guard",
+  "short_name": "Ant Guard",
+  "description": "Đặt kiến gác: mỗi hàng, mỗi cột, mỗi buồng đúng một con. Kiến không đứng sát nhau.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141826",
+  "theme_color": "#141826",
+  "icons": [
+    {
+      "src": "assets/logo-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

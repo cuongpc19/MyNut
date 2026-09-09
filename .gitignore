@@ -1,0 +1,5 @@
+# Kết quả build, dựng lại được bằng tools/build_single.mjs.
+dist/
+
+# Ảnh gốc AI vẽ gửi sang để cắt ra assets/ — nặng, và bản đã cắt mới là bản dùng.
+Manythings/

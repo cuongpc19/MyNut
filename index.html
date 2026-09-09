@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Ant Guard</title>
+    <meta name="description" content="Đặt kiến gác: mỗi hàng, mỗi cột, mỗi buồng đúng một con. Kiến không đứng sát nhau. Gác đủ năm đêm là giữ được một buồng của tổ." />
+    <meta name="theme-color" content="#141826" />
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/logo-32.png" />
+    <link rel="apple-touch-icon" href="assets/logo-180.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <!-- Chạy toàn màn hình khi thêm vào màn hình chính trên iOS. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ant Guard" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Ảnh xem trước khi dán link. Open Graph đòi địa chỉ tuyệt đối, không nhận
+         đường dẫn tương đối. Tạm dùng logo vuông; ảnh 1200×630 riêng sẽ đẹp hơn. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ant Guard" />
+    <meta property="og:description" content="Đặt kiến gác: mỗi hàng, mỗi cột, mỗi buồng đúng một con. Kiến không đứng sát nhau." />
+    <meta property="og:image" content="https://cuongpc19.github.io/Colodoku/assets/logo-512.png" />
+    <meta property="og:url" content="https://cuongpc19.github.io/Colodoku/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="stylesheet" href="src/style.css" />
+  </head>
+  <body class="app">
+    <!-- ------------------------------------------------------ trang chủ
+         Mặt cắt tổ kiến: năm buồng của tầng đang đào, buồng nào gác đủ năm đêm
+         thì treo đèn. Chữ giữ ở mức tối thiểu — tên tầng, tên buồng, năm chấm. -->
+    <section id="screen-home" class="screen home">
+      <div class="home-top">
+        <div class="brand"><i class="ant"></i><span>Ant Guard</span></div>
+        <div class="home-pills">
+          <div class="pill-stat" data-i18n="candyBankTip" data-i18n-attr="title" title="Candy carried home">
+            <i class="candy tiny"></i><b id="home-bank">0</b>
+          </div>
+          <button class="icon gear" data-settings>&#9881;<i class="dot"></i></button>
+        </div>
+      </div>
+
+      <div id="nest" class="nest"></div>
+
+      <button id="btn-play" class="primary pill"><i class="ant"></i><span id="play-label">Play</span></button>
+      <p class="home-links">
+        <button id="btn-tutorial" class="linkish" data-i18n="howToPlay">How to play</button>
+      </p>
+    </section>
+
+    <!-- ---------------------------------------------------------- chơi -->
+    <section id="screen-play" class="screen play" hidden>
+      <header class="bar">
+        <button class="icon" data-goto="home" data-i18n="back" data-i18n-attr="aria-label">&larr;</button>
+        <div class="hud">
+          <div class="hud-level"><small id="play-kicker">Night</small><strong id="play-title">1</strong></div>
+          <div class="hud-pills">
+            <div class="pill-stat" data-i18n="candyBankTip" data-i18n-attr="title" title="Candy carried home">
+              <i class="candy tiny"></i><b id="play-bank">0</b>
+            </div>
+          </div>
+        </div>
+        <button class="icon gear" data-settings>&#9881;<i class="dot"></i></button>
+      </header>
+
+      <!-- Hàng dưới thanh tiêu đề: ba viên kẹo của đêm nay, và số chốt đã gác. -->
+      <div class="chips" id="chips">
+        <div class="chip candies" id="play-candy" data-i18n="candyTip" data-i18n-attr="title" title="Candy left"></div>
+        <div class="chip"><b id="play-count">0/4</b><i class="ant"></i></div>
+      </div>
+
+      <!-- Thẻ hướng dẫn / thẻ gợi ý NỔI trên bàn cờ trong một ô chừa sẵn, nên dù
+           thẻ dài ngắn ra sao bàn cờ cũng không dịch. -->
+      <div class="slot slot-top">
+        <div id="coach-top" class="coach" hidden>
+          <strong id="coach-title" hidden></strong>
+          <p id="coach-text"></p>
+        </div>
+      </div>
+
+      <div id="board" class="board" role="grid" aria-label="Ant Guard board"></div>
+
+      <!-- Dưới bàn cờ: thẻ nhắc thao tác, hoặc nút Got it! / Apply — cùng một ô.
+           Chữ trên nút do JS đặt theo vai đang dùng. -->
+      <div class="slot slot-bottom">
+        <div id="coach-bottom" class="coach bottom" hidden><p id="coach-hint"></p></div>
+        <button id="btn-apply" class="primary pill apply" hidden>Apply</button>
+      </div>
+
+
+      <div id="play-status" class="status"></div>
+
+      <!-- Hai nút trợ giúp gộp trong một viên thuốc. -->
+      <div id="boosters" class="boosters">
+        <button id="btn-reveal" class="booster" data-i18n="revealTip" data-i18n-attr="title" title="Place one ant for me">
+          <i class="ant"></i><span data-i18n="reveal">Place</span><b class="badge" id="reveal-left">5</b>
+        </button>
+        <button id="btn-hint" class="booster" data-i18n="hintTip" data-i18n-attr="title" title="Hint">
+          <span class="glyph">&#128161;</span><span data-i18n="hint">Hint</span><b class="badge" id="hint-left">5</b>
+        </button>
+      </div>
+
+      <p id="hint-text" class="hint-text"></p>
+    </section>
+
+    <!-- ------------------------------------------------------ màn thắng -->
+    <div id="win" class="overlay" hidden>
+      <!-- Pháo giấy rơi sau lưng hộp thoại, dựng bằng JS lúc thắng. -->
+      <div id="confetti" class="confetti" aria-hidden="true"></div>
+      <div class="dialog">
+        <!-- Kiến reo mừng; game.js gán lại mỗi lần thắng để animation chạy từ đầu. -->
+        <div id="win-art" class="logo"><i class="ant-happy"></i></div>
+        <p id="win-badge" class="badge-master" hidden>MASTER</p>
+        <h2 id="win-title">Well Played</h2>
+        <p id="win-reward" class="reward" hidden>
+          <i class="candy"></i><b id="win-candy">+0</b>
+        </p>
+        <p id="win-note" class="win-note"></p>
+        <button id="btn-next" class="primary big">Next night</button>
+        <button id="btn-replay" class="ghost" data-i18n="replay">Replay this night</button>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------------- cài đặt -->
+    <div id="settings" class="overlay" hidden>
+      <div class="dialog">
+        <h2 data-i18n="settings">Settings</h2>
+        <p class="win-note" id="settings-note"></p>
+
+        <label class="setting-row">
+          <span data-i18n="language">Language</span>
+          <select id="opt-language"></select>
+        </label>
+        <label class="setting-row">
+          <span data-i18n="sound">Sound</span>
+          <input type="checkbox" id="opt-sound" checked />
+        </label>
+
+        <!-- Trong màn chơi không còn thẻ luật, nên bài hướng dẫn mở lại từ đây. -->
+        <button id="btn-howto" class="ghost" data-i18n="howToPlay">How to play</button>
+        <button id="btn-restart" class="ghost" data-i18n="restart" hidden>Restart level</button>
+        <button id="btn-wipe" class="ghost" data-i18n="wipe">Reset progress</button>
+        <button id="btn-close-settings" class="primary big" data-i18n="close">Close</button>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------- xác nhận xoá dữ liệu -->
+    <div id="confirm" class="overlay" hidden>
+      <div class="dialog">
+        <div class="logo">&#9888;&#65039;</div>
+        <h2 data-i18n="wipeTitle">Delete all your data?</h2>
+        <p class="warn" data-i18n="wipeWarn"></p>
+        <p class="win-note" id="wipe-losing"></p>
+        <button id="btn-wipe-yes" class="danger big" data-i18n="wipeYes">Delete everything</button>
+        <button id="btn-wipe-no" class="primary big" data-i18n="cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Kẹo bay từ chip vào kho trên HUD. Để ở cuối body, position: fixed, nên
+         không khung nào cắt được đường bay. -->
+    <div id="candy-fly" class="candy-fly" aria-hidden="true"></div>
+
+    <script type="module" src="src/game.js"></script>
+  </body>
+</html>

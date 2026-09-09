@@ -1,0 +1,1322 @@
+:root {
+  /* Theme "đêm": mọi màu nền tối, chữ sáng. Nền đêm là thứ đầu tiên khiến ảnh
+     chụp màn hình không còn giống một game pastel nào. */
+  --ink: #eef0f7;
+  --muted: #8b93a8;
+  --paper: #141826;   /* nền trang */
+  --card: #1f2538;    /* thẻ, chip, hộp thoại */
+  --line: #2e364d;
+  --accent: #ffc46b;  /* nút chính, con số nhấn — chữ trên nó phải TỐI */
+  --on-accent: #141826;
+  --key: #ffc46b;     /* chữ nhấn trong lời hướng dẫn */
+  --coach-ink: #c9cfe0;
+  --danger: #ff6b6b;
+  --good: #6ee0b1;
+
+  /* Bảng màu vùng: 12 màu rực trên nền đêm, không trùng bộ của game nào đã có.
+     --gN là màu ô; --kN là màu chữ gọi tên vùng — nền tối nên dùng luôn màu ô. */
+  /* Nhân vật kiến — dùng lại ở bàn cờ, mini-map, logo và chip đếm.
+     Bản 256px là đủ: chỗ vẽ to nhất là ô bàn 4x4, cỡ ~84px, tức ~252px thật
+     trên màn hình 3x. Ảnh 512px chỉ dành cho hai tư thế trong hộp thoại, mà
+     hai ảnh đó tới lúc mở hộp thoại mới tải. */
+  /* Kẹo — thứ kiến thích nhất, cũng là "mạng" của mỗi màn: đặt sai một con là
+     mất một viên, còn dư bao nhiêu thì mang về tổ bấy nhiêu.
+     Ba tư thế: viên thường, viên đã mất (xám), và viên lấp lánh dùng cho lúc
+     bay vào kho với dòng thưởng ở màn thắng. 192px là đủ — chỗ vẽ to nhất là
+     viên trên chip, cỡ ~44px, tức ~132px thật trên màn hình 3x. */
+  --candy: url("../assets/candy-192.png");
+  --candy-gone: url("../assets/candy-gone-192.png");
+  --candy-spark: url("../assets/candy-spark-192.png");
+
+  --ant: url("../assets/ant-256.png");
+  --ant-happy: url("../assets/ant-happy-512.png");
+  --ant-sad: url("../assets/ant-sad-512.png");
+
+  --g0: #5fd4e8; --g1: #ff7b6b; --g2: #b9e06a; --g3: #ff8fc6;
+  --g4: #ffc46b; --g5: #f2ea6a; --g6: #9d8cff; --g7: #6ee0b1;
+  --g8: #7ab5ff; --g9: #ff9a5c; --g10: #e3a7ff; --g11: #d8b48a;
+
+  --k0: var(--g0); --k1: var(--g1); --k2: var(--g2); --k3: var(--g3);
+  --k4: var(--g4); --k5: var(--g5); --k6: var(--g6); --k7: var(--g7);
+  --k8: var(--g8); --k9: var(--g9); --k10: var(--g10); --k11: var(--g11);
+}
+
+* { box-sizing: border-box; }
+
+/* iOS Safari bỏ qua `user-scalable=no` trong meta viewport từ iOS 10, nên bấm
+   đúp vào đâu cũng phóng to trang — mà bấm đúp lại chính là thao tác đặt kiến.
+   `manipulation` tắt riêng nhịp phóng to đó, vuốt và chụm hai ngón vẫn chạy. */
+html {
+  touch-action: manipulation;
+  /* Xoay ngang máy không tự thổi to cỡ chữ. */
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  /* Lặp lại `touch-action` ở body chứ không chỉ để trên html: iOS Safari có
+     lúc bỏ qua thuộc tính này khi nó nằm trên phần tử gốc. Bàn cờ đã tự chặn
+     bằng `touch-action: none`, dòng này lo phần còn lại của trang — HUD, thẻ
+     luật, nút trợ giúp, hộp thoại, và cả khoảng trống. */
+  touch-action: manipulation;
+  font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  /* Hai thứ mặc định của trình duyệt di động, trong game thì chỉ vướng: vệt
+     xám nhấp nháy lúc chạm, và menu bật ra khi giữ lâu. Cả hai đều kế thừa
+     xuống nên đặt ở body là đủ. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.picker select {
+  margin-left: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.status { font-size: 14px; color: var(--muted); min-height: 21px; }
+.status.win { color: var(--good); font-weight: 700; }
+.status.bad { color: var(--danger); font-weight: 600; }
+
+.board {
+  /* --board: bề rộng bàn cờ, --n: số ô mỗi cạnh (BoardView đặt khi dựng lưới).
+     Cỡ chữ trong ô suy ra từ hai biến này nên mèo và ✕ luôn vừa ô, mọi cỡ lưới. */
+  --board: min(78vw, 520px);
+  --n: 8;
+  position: relative;
+  display: grid;
+  /* BoardView chỉ đặt số cột; không có dòng này thì hàng tự cao theo nội dung,
+     hàng có ✕ hoặc con kiến sẽ cao hơn hàng trống. */
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 2.4%;
+  width: var(--board);
+  aspect-ratio: 1;
+  padding: 2.4%;
+  background: #0f1526;
+  border-radius: 22px;
+  /* Cả bàn cờ chặn hẳn cử chỉ mặc định: vuốt để đánh ✕ hàng loạt không được
+     phép biến thành cuộn trang. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter 0.25s;
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  font-size: clamp(12px, calc(var(--board) / var(--n) * 0.6), 62px);
+  line-height: 1;
+  cursor: pointer;
+  border: 0;
+  border-radius: 24%;
+  transition: filter 0.12s, transform 0.09s ease-out;
+}
+
+/* Ô đã loại trừ thì TẮT ĐÈN: tối đi, không vẽ dấu gì lên. Cả bàn vì thế sáng
+   dần về đúng những ô còn khả dĩ — càng chơi càng thấy rõ đáp án, và không còn
+   dấu ✕ nào. Nhịp tắt lệch pha theo --delay (sóng lan từ con kiến vừa đặt). */
+.cell.mark {
+  opacity: 0.28;
+  animation: lightoff 0.42s ease-out var(--delay, 0s) both;
+}
+@keyframes lightoff {
+  0% { opacity: 1; filter: brightness(1.35); transform: scale(1.02); }
+  35% { opacity: 0.55; filter: brightness(0.9); }
+  55% { opacity: 0.4; filter: brightness(1.05); }
+  100% { opacity: 0.28; filter: brightness(1); transform: scale(1); }
+}
+/* Bật lại: sáng lên một nhịp rồi về thường. */
+.cell.unmark { animation: lighton 0.3s ease-out both; }
+@keyframes lighton {
+  0% { opacity: 0.28; }
+  60% { opacity: 1; filter: brightness(1.3); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+/* Ô có kiến: viền trắng mảnh, để con kiến nổi hẳn lên khỏi các ô cùng màu. */
+.cell.cat { box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85); }
+
+/* Kiến đứng lẻ trong dòng chữ (logo, chip đếm, màn thắng) — cỡ bám font-size chỗ đặt. */
+.ant {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.14em;
+  background: var(--ant) center / contain no-repeat;
+}
+
+/* Kiến bối rối, dùng ở màn hết mạng. Cùng cỡ với kiến reo mừng nhưng chỉ có
+   nhịp vào, không nhún — thua rồi thì đừng nhảy nhót. */
+.ant-sad {
+  display: block;
+  width: min(124px, 34vw);
+  height: min(124px, 34vw);
+  margin: 0 auto;
+  background: var(--ant-sad) center / contain no-repeat;
+  animation: antsorry 0.5s ease-out;
+}
+
+@keyframes antsorry {
+  0% { transform: translateY(-14%) scale(0.86); opacity: 0; }
+  60% { transform: translateY(0) scale(1); opacity: 1; }
+  80% { transform: rotate(-3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Kiến reo mừng, chỉ dùng ở hộp thoại thắng màn. */
+.ant-happy {
+  display: block;
+  width: min(124px, 34vw);
+  height: min(124px, 34vw);
+  margin: 0 auto;
+  background: var(--ant-happy) center / contain no-repeat;
+  /* Bung vào một nhịp rồi nhún nhẹ mãi — hộp thoại đứng im trông như ảnh chụp. */
+  animation: antcheer 0.44s cubic-bezier(0.34, 1.56, 0.64, 1),
+    antbob 1.8s ease-in-out 0.44s infinite;
+}
+
+@keyframes antcheer {
+  0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes antbob {
+  50% { transform: translateY(-5%) rotate(-2deg); }
+}
+
+.cell:hover { filter: brightness(1.06); }
+
+/* Lún xuống lúc còn chạm. Bản gốc co ô đúng 2% — đủ để ngón tay thấy đã bấm
+   trúng, chưa đủ để thành hiệu ứng. */
+.cell.press { transform: scale(0.98); }
+
+/* Vệt loé của ô — chỉ dùng lúc đặt con vật. Số đo lấy từ bản ghi màn hình một
+   bản làm lại: vệt trắng nở từ 13% ra kín ô trong 170ms, đậm nhất 59% trắng rồi
+   tắt dần, tổng 0.44s.
+
+   Phải absolute chứ không để nó thành ô lưới: .cell là grid, ::before nằm trong
+   luồng sẽ đẩy con vật lệch khỏi tâm. */
+.cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #fff;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+.cell.flash::before { animation: cellflash 0.44s linear var(--delay, 0s) both; }
+
+@keyframes cellflash {
+  0% { transform: scale(0.13); opacity: 0.02; }
+  7.5% { transform: scale(0.39); opacity: 0.08; }
+  15% { transform: scale(0.57); opacity: 0.2; }
+  23% { transform: scale(0.7); opacity: 0.33; }
+  30% { transform: scale(0.87); opacity: 0.5; }
+  38% { transform: scale(1); opacity: 0.59; }
+  45% { opacity: 0.54; }
+  53% { opacity: 0.48; }
+  61% { opacity: 0.39; }
+  68% { opacity: 0.33; }
+  76% { opacity: 0.27; }
+  83% { opacity: 0.19; }
+  91% { opacity: 0.08; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* ------------------------------------------------------------- dấu ✕ đỏ
+
+   Chỉ còn một chỗ vẽ ✕: ô người chơi đã đặt SAI. Nét vẽ ra từng đường bằng
+   stroke-dashoffset, nên đây là SVG chứ không phải ::after. Ô loại trừ thường
+   thì tắt đèn (xem .cell.mark), không có dấu. */
+.cell .x {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cell .x line {
+  stroke: var(--danger);
+  stroke-width: 11;
+  stroke-linecap: round;
+  /* 66 = chiều dài nét chéo (27→73) trong hệ toạ độ 100×100 của viewBox. */
+  stroke-dasharray: 66;
+  stroke-dashoffset: 66;
+}
+
+.cell.wrong .x { opacity: 1; }
+.cell.wrong .x line { animation: xdraw 0.17s ease-out forwards; }
+.cell.wrong .x line:nth-child(2) { animation-delay: 0.07s; }
+@keyframes xdraw { to { stroke-dashoffset: 0; } }
+
+/* --------------------------------------------------------- con kiến trên ô
+
+   z-index để vệt loé lúc đặt (::before, absolute) không phủ trắng lên nó. */
+.cell.cat::after {
+  content: "";
+  position: relative;
+  z-index: 1;
+  width: 1.15em;
+  height: 1.15em;
+  background: var(--ant) center / contain no-repeat;
+}
+
+/* Đặt kiến: hiện ngay ở cỡ thật rồi bung quá cỡ và nảy về — cú bấm đúp phải
+   thấy "đã tay". Easing để trơn, độ nảy nằm hết trong keyframe; trộn cả hai thì
+   đoạn cuối bị giật. */
+.cell.pop { z-index: 2; }
+.cell.pop::after { animation: antpop 0.36s ease-out; }
+
+/* Vừa đặt xong: kiến vui một lát (lắc nhẹ) rồi về mặt thường. */
+.cell.happy::after {
+  background-image: var(--ant-happy);
+  animation: antpop 0.36s ease-out, antwiggle 0.9s ease-in-out;
+}
+
+@keyframes antwiggle {
+  20% { transform: rotate(-8deg); }
+  45% { transform: rotate(8deg); }
+  70% { transform: rotate(-5deg); }
+  100% { transform: rotate(0); }
+}
+
+/* Chữ khen bay lên từ ô vừa đặt, đậm dần theo bậc chuỗi. */
+.combo {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -60%);
+  font-weight: 900;
+  font-size: clamp(18px, calc(var(--board) * 0.07), 30px);
+  letter-spacing: 0.02em;
+  color: #fff;
+  -webkit-text-stroke: 1.5px rgba(10, 14, 30, 0.9);
+  text-shadow: 0 2px 0 rgba(10, 14, 30, 0.4), 0 0 14px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  white-space: nowrap;
+  animation: combofloat 0.95s ease-out forwards;
+}
+.combo.tier-0 { color: #ffe27a; }
+.combo.tier-1 { color: #9be86b; }
+.combo.tier-2 { color: #7fd4ff; }
+.combo.tier-3 { color: #ff9ad0; }
+.combo.tier-4 { color: #ffb347; font-size: clamp(20px, calc(var(--board) * 0.085), 36px); }
+
+/* Gỡ được một ngách khó: to hơn hẳn bậc combo cao nhất, nảy hai nhịp rồi mới
+   bay lên, và ở lại lâu gần gấp đôi. Người chơi vừa ngồi nghĩ cả phút thì phải
+   thấy rõ là game biết điều đó. */
+.combo.eureka {
+  color: #fff36b;
+  font-size: clamp(23px, calc(var(--board) * 0.108), 44px);
+  -webkit-text-stroke: 2px rgba(10, 14, 30, 0.95);
+  text-shadow: 0 3px 0 rgba(10, 14, 30, 0.4), 0 0 22px rgba(255, 220, 90, 0.85);
+  animation: eurekafloat 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes eurekafloat {
+  0% { opacity: 0; transform: translate(-50%, -25%) scale(0.35) rotate(-9deg); }
+  12% { opacity: 1; transform: translate(-50%, -78%) scale(1.4) rotate(4deg); }
+  22% { transform: translate(-50%, -86%) scale(1.02) rotate(-3deg); }
+  32% { transform: translate(-50%, -80%) scale(1.2) rotate(1deg); }
+  42% { transform: translate(-50%, -86%) scale(1.08) rotate(0deg); }
+  70% { opacity: 1; transform: translate(-50%, -96%) scale(1.08); }
+  100% { opacity: 0; transform: translate(-50%, -170%) scale(1.02); }
+}
+
+/* Pháo giấy bung ra từ chính ô vừa đặt. Khác pháo giấy màn thắng ở chỗ nó toả
+   từ một điểm và chạy đúng một lần — JS gỡ cả lớp đi khi mảnh cuối rơi xong. */
+.sparks { position: absolute; z-index: 6; pointer-events: none; }
+.sparks i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--w);
+  height: calc(var(--w) * 1.5);
+  /* Kéo lùi nửa mảnh để tâm mảnh trùng tâm ô, không thì cả chùm lệch xuống phải. */
+  margin: calc(var(--w) * -0.75) 0 0 calc(var(--w) * -0.5);
+  background: var(--tone);
+  border-radius: 2px;
+  animation: sparkfly var(--dur) cubic-bezier(0.16, 0.85, 0.4, 1) forwards;
+}
+
+/* Bung ra rồi rơi: `--dy` là hướng toả, cộng thêm 46px kéo xuống ở cuối để
+   chùm pháo có trọng lượng chứ không nở đều như một vòng tròn. */
+@keyframes sparkfly {
+  from { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(0.55); }
+  70% { opacity: 1; }
+  to { opacity: 0; transform: translate3d(var(--dx), calc(var(--dy) + 46px), 0) rotate(var(--spin)) scale(1); }
+}
+
+@keyframes combofloat {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
+  18% { opacity: 1; transform: translate(-50%, -70%) scale(1.15); }
+  35% { transform: translate(-50%, -80%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(1); }
+}
+
+@keyframes antpop {
+  0% { transform: scale(0.9); }
+  35% { transform: scale(1.34); }
+  62% { transform: scale(0.95); }
+  82% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Đặt sai: ô tối như ô loại trừ nhưng KHÔNG tắt hẳn (người chơi vẫn phải nhìn
+   ra nó màu gì), thêm viền đỏ và ✕ đỏ. Đứng sau .cell.mark để thắng độ mờ. */
+.cell.wrong {
+  opacity: 0.6;
+  box-shadow: inset 0 0 0 4px var(--danger);
+  animation: none;
+}
+
+.cell.conflict {
+  box-shadow: 0 0 0 3px var(--danger);
+  animation: shake 0.3s;
+}
+
+.cell.hint {
+  z-index: 1;
+  box-shadow: 0 0 0 4px var(--accent);
+  animation: pulse 1s ease-in-out 3;
+}
+
+/* Gợi ý "loại các ô này": xem trước ô sắp tắt — mờ một nửa, viền đứt trắng. */
+.cell.preview {
+  opacity: 0.55;
+  outline: 3px dashed rgba(255, 255, 255, 0.8);
+  outline-offset: -5px;
+}
+
+@keyframes pulse { 50% { filter: brightness(1.25); } }
+@keyframes shake {
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+
+button {
+  padding: 9px 16px;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.ghost { background: transparent; color: var(--muted); }
+/* Nút cho hành động không lùi được. */
+button.danger { color: #fff; background: var(--danger); border-color: var(--danger); font-weight: 600; }
+button.danger:hover:not(:disabled) { filter: brightness(1.06); }
+.warn { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--danger); }
+
+.toggle { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+
+.howto { max-width: 460px; margin: 0; font-size: 13px; color: var(--muted); text-align: center; }
+
+.panel {
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.panel h2 { margin: 0 0 14px; font-size: 16px; }
+.panel h3 { margin: 20px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+
+.meta { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; font-size: 14px; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; font-weight: 600; text-align: right; }
+
+.hint-note { margin: 0 0 10px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+.techs { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; }
+
+.techs li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; align-items: center; }
+.techs li.unused { opacity: 0.35; }
+.techs .rank { display: grid; place-items: center; width: 18px; height: 18px; font-size: 11px; font-weight: 700; color: #fff; background: var(--muted); border-radius: 5px; }
+.techs li.used .rank { background: var(--accent); }
+.techs .count { font-variant-numeric: tabular-nums; color: var(--muted); }
+
+.walk { display: flex; gap: 8px; }
+.walk button { padding: 7px 12px; font-size: 13px; }
+
+.explain { min-height: 60px; margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.explain b { color: var(--ink); }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  padding: 12px 22px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--good);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .board { --board: min(92vw, 520px); }
+}
+
+/* ======================================================== màn hình game */
+
+/* `100dvh` chứ không phải `100vh`: trên Safari/Chrome di động `100vh` là chiều
+   cao khi thanh địa chỉ đã thu lại, nên lúc thanh còn hiện trang luôn cao hơn
+   khung nhìn khoảng 60-100px — kéo dài ra một quãng trống và ép người chơi
+   phải vuốt dù nội dung vừa đủ. Dòng `100vh` giữ lại làm dự phòng cho trình
+   duyệt cũ chưa biết đơn vị dvh. */
+body.app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+
+.screen { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.screen[hidden] { display: none; }
+
+/* --- trang chủ --- */
+.home { justify-content: flex-start; gap: 0; padding: 14px 18px 30px; text-align: center; }
+
+.home-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: min(520px, 100%);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  font-size: 32px;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+}
+
+/* Nút bánh răng tròn, có chấm đỏ như bản gốc. */
+.icon.gear {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  font-size: 22px;
+  color: var(--muted);
+  border-radius: 50%;
+  border: 0;
+}
+.icon.gear .dot {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  background: var(--danger);
+  border-radius: 50%;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: min(520px, 100%);
+  margin-top: 18px;
+}
+
+.home-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 18px 14px 16px;
+  border-radius: 18px;
+  color: #fff;
+  text-align: center;
+}
+.home-card b { font-size: 21px; line-height: 1.15; }
+.home-card small { font-size: 13px; opacity: 0.92; }
+.home-card .lock { font-size: 34px; }
+
+.home-card.locked { background: var(--card); color: var(--muted); }
+.home-card.streak {
+  background: linear-gradient(180deg, #ffd54a, #f5b60f);
+  color: #8a5a12;
+}
+.home-card.streak b { color: #a9670f; }
+.home-card .token { display: grid; place-items: center; font-size: 40px; }
+.home-card .token .ant { width: 1em; height: 1em; }
+.home-card .streak em,
+.home-card.streak em {
+  display: block;
+  width: 78%;
+  padding: 5px 0;
+  font: 700 20px/1.2 inherit;
+  font-style: normal;
+  color: #a9670f;
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: 999px;
+}
+.home-card .tick {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  font-size: 22px;
+  color: #fff;
+  background: #f19320;
+  border-radius: 0 18px 0 18px;
+}
+
+/* Chữ hiệu: hai chữ chồng nhau, chữ dưới màu nhấn. */
+.wordmark {
+  margin: 52px 0 34px;
+  font: 900 50px/0.92 "Segoe UI", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.wordmark span { display: block; color: var(--accent); }
+
+.home-links { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: center; margin: 18px 0 0; }
+.progress-line { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+button.primary { color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 700; }
+button.primary:hover:not(:disabled) { filter: brightness(1.07); }
+button.big { padding: 13px 20px; font-size: 16px; }
+
+/* Nút hành động chính dạng viên thuốc, như nút "Level 2" của họ. */
+button.pill {
+  width: min(400px, 86%);
+  padding: 17px 24px;
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: 999px;
+  box-shadow: 0 5px 0 #b8862e;
+}
+button.pill:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 3px 0 #b8862e; }
+
+.progress-line { margin: 20px 0 4px; font-size: 13px; color: var(--muted); }
+.lab-link { font-size: 12.5px; color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--line); }
+.lab-link:hover { color: var(--accent); }
+
+/* --- thanh tiêu đề trong màn chơi --- */
+.bar {
+  display: grid;
+  grid-template-columns: 46px 1fr 46px;
+  gap: 10px;
+  align-items: center;
+  width: min(560px, 96vw);
+  padding: 14px 4px;
+}
+.bar h2 { margin: 0; font-size: 17px; text-align: center; }
+.bar .icon { padding: 6px 12px; font-size: 17px; line-height: 1; }
+
+/* Trong màn chơi hai nút góc là hình tròn, không phải nút chữ như ở màn chọn. */
+.play .bar { grid-template-columns: var(--icon-btn) 1fr var(--icon-btn); }
+.play .bar .icon {
+  display: grid;
+  place-items: center;
+  width: var(--icon-btn);
+  height: var(--icon-btn);
+  padding: 0;
+  font-size: calc(var(--icon-btn) * 0.44);
+  border-radius: 50%;
+}
+.play .icon.gear .dot { width: calc(var(--icon-btn) * 0.2); height: calc(var(--icon-btn) * 0.2); }
+/* HUD: số màn to bên trái, hai viên thuốc (kho kẹo, xu) bên phải. */
+.hud {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 1.1;
+}
+.hud-level { text-align: left; }
+.hud small {
+  display: block;
+  font-size: var(--hud-label);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hud-level strong {
+  display: block;
+  font-size: calc(var(--board) * 0.12);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.hud-pills { display: flex; gap: 6px; align-items: center; }
+.pill-stat {
+  display: flex;
+  gap: 0.3em;
+  align-items: center;
+  height: var(--chip-h);
+  padding: 0 calc(var(--chip-h) * 0.4) 0 calc(var(--chip-h) * 0.28);
+  font-size: calc(var(--chip-h) * 0.42);
+  font-weight: 700;
+  background: var(--card);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.pill-stat .candy.tiny { width: 1.3em; height: 1.3em; }
+/* Kẹo vừa rơi vào kho: viên thuốc nảy một cái rồi về — đủ để mắt bắt được nó đã tăng. */
+.pill-stat.bump { animation: candybump 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes candybump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); color: var(--accent); }
+  100% { transform: scale(1); }
+}
+
+/* Hàng dưới thanh tiêu đề, rộng đúng bằng bàn cờ: ba viên kẹo mạng bên trái,
+   chuỗi thắng ở giữa, đếm kiến bên phải. Không nền, không viền — chỉ là chữ. */
+.chips {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  width: var(--board);
+}
+.chip {
+  display: flex;
+  gap: calc(var(--chip-h) * 0.22);
+  align-items: center;
+  min-height: var(--chip-h);
+  font-size: calc(var(--chip-h) * 0.42);
+  font-weight: 700;
+  color: var(--muted);
+}
+.chip .ant { width: 1.5em; height: 1.5em; }
+.chip b { color: var(--ink); font-size: 1.25em; font-variant-numeric: tabular-nums; }
+.chip small { font-size: 0.8em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.chip.candies { gap: calc(var(--chip-h) * 0.1); }
+
+/* Chip nảy một cái khi bấm trợ giúp mà không đủ tiền. */
+.chips.nudge { animation: shake 0.3s; }
+/* Viên kẹo. Ảnh vuông, viên kẹo nằm chéo trong khung. */
+.candy {
+  display: inline-block;
+  flex: none;
+  width: 1.35em;
+  height: 1.35em;
+  background: var(--candy) center / contain no-repeat;
+}
+.chip.candies .candy {
+  width: calc(var(--chip-h) * 0.86);
+  height: calc(var(--chip-h) * 0.86);
+  transition: transform 0.18s ease;
+}
+/* Viên đã mất: xám hẳn và nhỏ lại một chút, để liếc là biết còn mấy viên. */
+.candy.gone { background-image: var(--candy-gone); transform: scale(0.86); }
+/* Vừa mất một viên: giật nảy rồi xẹp xuống thành ô xám. */
+.chip.candies .candy.eaten { animation: candyeaten 0.5s ease-out; }
+@keyframes candyeaten {
+  0% { transform: scale(1.35) rotate(-14deg); }
+  55% { transform: scale(0.7) rotate(10deg); }
+  100% { transform: scale(0.86); }
+}
+
+.stars { color: var(--accent); font-size: 14px; text-align: right; letter-spacing: 1px; }
+.stars.big { font-size: 28px; letter-spacing: 3px; }
+
+/* --- chọn màn --- */
+.map { padding-bottom: 50px; }
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 9px;
+  width: min(640px, 94vw);
+}
+.map-cell {
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 10px 4px;
+  line-height: 1.1;
+}
+.map-cell b { font-size: 15px; }
+.map-cell .stars { font-size: 10px; min-height: 12px; }
+.map-cell.current { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(240, 138, 60, 0.25); }
+.map-cell.locked { color: var(--muted); background: transparent; opacity: 0.4; }
+
+/* --- màn chơi --- */
+/* Mọi thứ quanh bàn cờ đo theo --board chứ không ghi cứng px: desktop bàn cờ
+   phình lên 640px mà HUD giữ nguyên px thì teo hẳn lại so với nó. Các tỉ lệ
+   dưới đây lấy từ ảnh chụp bản gốc, chia cho bề rộng bàn cờ trong ảnh. */
+.play {
+  /* Chiều cao cũng phải vào công thức, không chỉ bề rộng. Cả cột cao xấp xỉ
+     1,38 x bàn cờ + 200px cố định (thanh tiêu đề, hàng chip, dòng trạng thái,
+     hai nút trợ giúp, các khe hở) — giải ra `board <= 72dvh - 145px`. Thiếu vế
+     này thì trên máy màn hình ngắn bàn cờ vẫn lấy 88vw và đẩy nút trợ giúp
+     xuống dưới mép màn hình. */
+  --board: min(96vw, 560px, max(210px, 72vh - 148px));
+  /* Chỗ thừa theo chiều dọc chia đều trên dưới. Trên máy bề ngang hẹp, bàn cờ
+     bị 96vw chặn trước nên gần như luôn còn dư chiều cao — dồn hết xuống đáy
+     thì cả màn hình lệch lên trên. */
+  justify-content: center;
+  --hud-label: calc(var(--board) * 0.042);
+  --hud-value: calc(var(--board) * 0.055);
+  --chip-h: calc(var(--board) * 0.094);
+  --icon-btn: calc(var(--board) * 0.112);
+  --booster: calc(var(--board) * 0.150);
+  gap: 12px;
+  padding-bottom: 44px;
+}
+.play .board { --board: inherit; }
+
+.hint-text { max-width: 460px; margin: 0; padding: 0 16px; font-size: 13px; color: var(--muted); text-align: center; }
+
+/* Hướng dẫn: phủ tối cả bàn cờ rồi nhấc riêng những ô đang được nói tới lên
+   trên lớp phủ. Meowdoku làm đúng như vậy — không viền sáng, không nhấp nháy,
+   nhìn phát biết ngay phải bấm đâu. */
+/* Lớp phủ trải hết màn hình chứ không riêng bàn cờ — trong bản gốc cả trang
+   tối đi, chỉ còn thẻ hướng dẫn và mấy ô đang nói tới là sáng. */
+.board::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.8);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.board.dim::after { opacity: 1; }
+
+.cell.lit { z-index: 4; }
+
+/* Bàn tay minh hoạ thao tác trong tutorial. */
+.hand {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 1em;
+  margin-left: -0.5em;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+.hand { transition: transform 0.28s ease; }
+.hand i { display: block; font-style: normal; }
+/* Chỉ mờ dần, KHÔNG động tới transform: vị trí bàn tay do JS đặt inline, dùng
+   keyframe có translate sẽ kéo nó về sai ô trong lúc chạy. */
+.hand.enter { animation: handin 0.3s ease both; }
+
+@keyframes handin {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hand.tapping i { animation: handtap 1.1s ease-in-out infinite; }
+
+@keyframes handtap {
+  0%, 100% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-14%) scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand.tapping i { animation: none; }
+}
+.coach { position: relative; z-index: 4; }
+.overlay { z-index: 10; }
+
+/* Trong lúc hướng dẫn, bản gốc giấu chip đếm mèo, ba thẻ nhắc luật và cả thanh
+   tiêu đề. Ở đây vẫn giữ lại mỗi nút quay lại, nhấc lên trên lớp phủ, để người
+   chơi mở hướng dẫn từ trang chủ còn có đường ra. */
+.play.tutorial { justify-content: center; }
+.play.tutorial .chips { display: none; }
+.play.tutorial .hud { visibility: hidden; }
+.play.tutorial .bar .icon { position: relative; z-index: 4; }
+
+/* Ô cần bấm hai lần: vòng trắng quanh ô, đập chậm. */
+.cell.ring {
+  z-index: 4;
+  box-shadow: 0 0 0 4px #fff, 0 0 18px 4px rgba(255, 255, 255, 0.45);
+  animation: ringpulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ringpulse {
+  50% { box-shadow: 0 0 0 7px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.6); }
+}
+
+/* Ô gây ra suy luận trong gợi ý: viền trắng đứt, không đập, để phân biệt với ô sắp bị ✕. */
+.cell.cause {
+  z-index: 4;
+  box-shadow: 0 0 0 3px #fff;
+  outline: 2px dashed rgba(255, 255, 255, 0.6);
+  outline-offset: -6px;
+}
+
+/* Nhịp khen giữa hai bước: bỏ lớp tối, cả bàn sáng bừng lên một cái. */
+.board.flash { filter: brightness(1.1) saturate(1.12); }
+
+/* --- hai nút trợ giúp gộp trong một viên thuốc dưới bàn cờ --- */
+.boosters {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  margin-top: calc(var(--board) * 0.02);
+  background: var(--card);
+  border-radius: 999px;
+}
+
+.booster {
+  position: relative;
+  display: flex;
+  gap: 0.4em;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--board) * 0.36);
+  height: calc(var(--booster) * 0.78);
+  padding: 0 calc(var(--booster) * 0.28);
+  font-size: calc(var(--booster) * 0.24);
+  font-weight: 700;
+  color: var(--ink);
+  background: #2a3148;
+  border: 0;
+  border-radius: 999px;
+}
+.booster .glyph, .booster .ant { font-size: 1.6em; }
+.booster .ant { width: 1em; height: 1em; }
+.booster:disabled { opacity: 0.45; }
+/* Thiếu tiền thì mờ đi nhưng KHÔNG khoá: bấm vào còn báo được lý do. */
+.booster.broke { opacity: 0.5; }
+
+/* Hết lượt miễn phí thì badge đổi vai thành **giá kẹo**. Chỉ đổi màu thì vẫn
+   dễ đọc nhầm thành "còn 2 lượt", nên nhét luôn viên kẹo vào cạnh con số —
+   nhìn là biết đang trả gì, không phải suy từ màu. */
+.booster .badge.price {
+  color: #7a5510;
+  background: linear-gradient(#ffd964, #f0b429);
+}
+.booster .badge .candy { width: 1.1em; height: 1.1em; }
+
+.booster .badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: calc(var(--booster) * 0.05);
+  align-items: center;
+  justify-content: center;
+  min-width: calc(var(--booster) * 0.38);
+  height: calc(var(--booster) * 0.38);
+  padding: 0 calc(var(--booster) * 0.07);
+  /* Không gộp vào shorthand `font`: `inherit` không hợp lệ trong đó, cả dòng
+     sẽ bị bỏ qua và con số lấy nguyên cỡ chữ 0.52×nút của .booster. */
+  font-weight: 700;
+  font-size: calc(var(--booster) * 0.2);
+  line-height: 1;
+  /* Mặc định là số lượt miễn phí còn lại — viên đỏ, như bản gốc. */
+  color: #fff;
+  background: var(--danger);
+  /* Viền màu thẻ: tạo khe hở để con số không dính vào nút bên dưới. */
+  border: calc(var(--booster) * 0.035) solid var(--card);
+  border-radius: 999px;
+  /* Đẩy chồm ra ngoài góc trên phải thay vì nằm đè lên giữa nút. */
+  transform: translate(30%, -40%);
+}
+
+/* Hai ô chừa sẵn trên và dưới bàn cờ. Thẻ hướng dẫn, thẻ nhắc và nút Got it!/
+   Apply đều nổi tuyệt đối trong đó, nên hiện/ẩn hay dài ngắn cũng không đẩy
+   bàn cờ đi đâu. Ngoài tutorial hai ô này cao 0 — thẻ gợi ý sẽ đè lên phần trên
+   (đã bị phủ tối), đúng như bản gốc. */
+/* Rộng đúng bằng bàn cờ: chữ xuống dòng thành một khối đặc, thay vì trải
+   một dòng mỏng rộng hơn cả bàn cờ. */
+.slot { position: relative; width: var(--board); }
+/* Canh giữa bằng left/right + margin auto, KHÔNG dùng transform: luật
+   `button.pill:active` đặt transform riêng và thắng về độ ưu tiên — nếu định vị
+   bằng translateX thì lúc đè chuột nút văng sang một bên, mouseup rơi ra ngoài
+   và trình duyệt không phát click. Đây là lý do Apply "bấm mãi không ăn". */
+.slot-top .coach { position: absolute; bottom: 6px; left: 0; right: 0; margin: 0 auto; }
+.slot-bottom .coach,
+.slot-bottom .pill.apply { position: absolute; top: 6px; left: 0; right: 0; margin: 0 auto; }
+.pill.apply { z-index: 4; }
+
+/* Đang chìa gợi ý: khoá tương tác toàn màn chơi, chỉ chừa nút Apply. Nhờ vậy
+   cú bấm thứ hai của một lần bấm đúp không lọt xuống nút trợ giúp nằm dưới. */
+.play.offering .board,
+.play.offering .boosters,
+.play.offering .chips,
+.play.offering .coach.bottom { pointer-events: none; }
+
+/* Màn hình ngắn thì bóp hai ô chừa chứ đừng bóp bàn cờ: thẻ hướng dẫn hụt vài
+   dòng vẫn đọc được, còn bàn cờ 4x4 mà teo lại thì bấm trượt ô. */
+.play.tutorial .slot-top { min-height: 150px; min-height: min(150px, 21dvh); }
+.play.tutorial .slot-bottom { min-height: 108px; min-height: min(108px, 15dvh); }
+/* Hai ô chừa ăn mất 258px nên bàn cờ trong tutorial phải chặt tay hơn màn
+   chơi thường: `board <= 50dvh - 125px`. */
+.play.tutorial { --board: min(96vw, 560px, max(155px, 50vh - 125px)); }
+
+/* Biến tuỳ biến không bị loại khi giá trị sai — trình duyệt cứ thay nguyên xi
+   vào chỗ dùng rồi mới hỏng ở đó. Nên không thể viết hai dòng vh/dvh chồng
+   nhau như với thuộc tính thường; phải hỏi @supports trước. */
+@supports (height: 1dvh) {
+  .play { --board: min(96vw, 560px, max(210px, 72dvh - 148px)); }
+  .play.tutorial { --board: min(96vw, 560px, max(155px, 50dvh - 125px)); }
+}
+
+/* --- thẻ hướng dẫn (trên và dưới bàn cờ) --- */
+.coach {
+  width: min(460px, 92vw);
+  padding: 14px 20px;
+  text-align: center;
+  /* Sáng hơn thẻ thường một bậc và có viền: thẻ này nằm TRÊN lớp phủ tối của
+     tutorial, cùng màu với nền tối là chìm mất. */
+  background: #2a3148;
+  border: 1px solid #3f4866;
+  border-radius: 14px;
+}
+.coach strong { display: block; margin-bottom: 3px; font-size: 23px; color: var(--k3); }
+.coach p { margin: 0; font-size: 23px; line-height: 1.4; color: var(--ink); }
+.coach .key { color: var(--key); font-weight: 600; }
+
+/* Sang bước mới: thẻ nhô lên một chút rồi hiện dần, thay vì thay chữ đột ngột. */
+@keyframes coachin {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.coach.enter { animation: coachin 0.26s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .board::after { transition: none; }
+  .hand { transition: none; }
+  .coach.enter,
+  .hand.enter { animation: none; }
+}
+.coach.bottom { padding: 15px 20px; }
+.coach.bottom.tappable { cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+.coach.bottom.tappable p { color: var(--accent); }
+.coach.bottom.tappable:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.coach.bottom.tappable:active { transform: translateY(1px); }
+
+/* Thẻ gợi ý trong màn chơi: chữ canh trái, tông dịu, đúng kiểu bản gốc. */
+.coach.tip { padding: 18px 22px; text-align: left; }
+.coach.tip p { font-size: 17.5px; color: var(--coach-ink); }
+
+/* --- hộp thoại thắng --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 8, 16, 0.62);
+}
+.overlay[hidden] { display: none; }
+.dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(330px, 90vw);
+  padding: 26px 24px;
+  text-align: center;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+.dialog h2 { margin: 0; font-size: 20px; }
+.dialog .logo { font-size: 44px; }
+.win-note { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+
+/* ------------------------------------------------------------- ăn mừng */
+
+/* Dòng kẹo mang về được. */
+.reward {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  opacity: 0;
+  animation: rewardpop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.35s;
+}
+.reward .candy { width: 1.5em; height: 1.5em; background-image: var(--candy-spark); }
+@keyframes rewardpop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* --- kẹo bay từ chip vào kho trên HUD ---
+   Lớp phủ cả trang, position: fixed, nên đường bay không bị khung nào cắt.
+   Toạ độ đầu/cuối do JS đo tại chỗ và truyền vào bằng biến. */
+.candy-fly {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.candy-fly i {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--size);
+  height: var(--size);
+  background: var(--candy-spark) center / contain no-repeat;
+  transform: translate(var(--x0), var(--y0));
+  animation: candyfly var(--dur) cubic-bezier(0.5, 0, 0.35, 1) var(--delay) both;
+}
+/* Nhún lên một nhịp rồi mới vọt vào kho — bay thẳng tắp nhìn như trượt, còn
+   nhún trước thì mắt kịp bám theo viên kẹo. */
+@keyframes candyfly {
+  0% { transform: translate(var(--x0), var(--y0)) scale(0.9) rotate(0deg); opacity: 0; }
+  12% { transform: translate(var(--x0), calc(var(--y0) - 22px)) scale(1.3) rotate(-14deg); opacity: 1; }
+  100% { transform: translate(var(--x1), var(--y1)) scale(0.5) rotate(300deg); opacity: 1; }
+}
+
+/* --- khoảnh khắc cả đàn kiến cảm ơn --- */
+.badge-master {
+  /* Hộp thoại xếp dọc và kéo giãn con, nên viên thuốc phải tự co về đúng bề
+     rộng chữ — không thì nó thành một thanh cam vắt ngang cả hộp. */
+  align-self: center;
+  margin: 0;
+  padding: 3px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #fff;
+  background: linear-gradient(100deg, var(--accent), #e0662a);
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(224, 102, 42, 0.35);
+  animation: rewardpop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+/* Ba con kiến cúi chào: con giữa to nhất, hai con hai bên vào sau một nhịp. */
+.parade { display: flex; gap: 2px; align-items: flex-end; justify-content: center; }
+.parade .ant-happy {
+  width: 46px;
+  height: 46px;
+  animation: bow 1.5s ease-in-out var(--delay) infinite;
+}
+.parade .ant-happy.lead { width: 68px; height: 68px; }
+@keyframes bow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(6px) rotate(-9deg); }
+  60% { transform: translateY(-4px) rotate(5deg); }
+}
+
+/* Pháo giấy rơi sau lưng hộp thoại: 26 mảnh, mỗi mảnh tự có màu, bề ngang,
+   độ lệch, độ xoay và nhịp riêng do JS gắn vào biến CSS. */
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetti i {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--w);
+  height: calc(var(--w) * 1.6);
+  background: var(--tone);
+  border-radius: 2px;
+  animation: fall var(--dur) linear var(--delay) infinite;
+}
+@keyframes fall {
+  from { transform: translate3d(0, -12vh, 0) rotate(0deg); }
+  to { transform: translate3d(var(--drift), 112vh, 0) rotate(var(--spin)); }
+}
+
+/* Dòng chọn ngôn ngữ trong hộp Cài đặt. Căn hai đầu chứ không giữa như phần
+   còn lại của hộp, để nhãn và ô chọn nằm thành một hàng đọc được. */
+.setting-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  text-align: start;
+}
+.setting-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+
+.setting-row select {
+  flex: 1;
+  min-width: 0;
+  max-width: 62%;
+  padding: 7px 9px;
+  font: inherit;
+  color: inherit;
+  background: var(--paper);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+}
+
+/* Nút chữ trơn, dùng cho hành động phụ như xoá tiến trình. */
+.linkish {
+  padding: 0 0 0 10px;
+  font-size: 12.5px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linkish:hover { color: var(--danger); }
+
+/* ------------------------------------------------- màn hình rộng (desktop)
+   Trên điện thoại bàn cờ bị giới hạn bởi bề ngang; trên desktop thì ngược lại,
+   chiều cao mới là thứ hiếm — nên lấy vh làm mốc và căn giữa cả cột. */
+@media (min-width: 760px) {
+  .play { justify-content: center; gap: 16px; padding-bottom: 24px; }
+  /* Cùng công thức chiều cao như bản hẹp, chỉ khác hằng số: khe hở 16px và
+     đệm đáy 24px thay cho 12/44. */
+  .play { --board: min(62vw, 640px, max(300px, 72vh - 172px)); }
+
+  .bar { width: min(760px, 94vw); }
+  .status { font-size: 15px; }
+
+  .coach { width: min(640px, 92vw); padding: 20px 26px; }
+  .play.tutorial .slot-top { min-height: 164px; min-height: min(164px, 21dvh); }
+  .play.tutorial .slot-bottom { min-height: 118px; min-height: min(118px, 15dvh); }
+  .play.tutorial { --board: min(62vw, 640px, max(200px, 50vh - 165px)); }
+  .coach strong { font-size: 25px; }
+  .coach p { font-size: 25px; }
+  .coach.tip p { font-size: 19.5px; }
+
+  .controls { gap: 12px; }
+  .controls button { padding: 10px 18px; font-size: 15px; }
+  .toggle { font-size: 14px; }
+  .hint-text { max-width: 620px; font-size: 14px; }
+}
+
+/* ================================================== trang chủ: mặt cắt tổ
+
+   Mọi thứ trên trang chủ đo theo --home, đúng cách màn chơi đo theo --board:
+   trên điện thoại bề ngang là thứ hiếm, trên desktop thì chiều cao mới hiếm.
+   Cả cột cao khoảng 1,70 x --home + 29px — đo thẳng trên hai cỡ cửa sổ chứ
+   không cộng tay từng phần, vì cỡ chữ và đệm cũng đo theo --home nên gần như
+   không có phần nào thật sự cố định. Riêng tranh nền chiếm 1,33 vì nó rộng
+   đúng bằng --home và tỉ lệ 3:4. Lấy `55dvh - 20` cho dư một khoảng; thiếu vế
+   chiều cao thì cửa sổ thấp bị cắt mất nút Play. */
+
+.home {
+  --home: min(92vw, 620px, max(260px, 55vh - 20px));
+  justify-content: flex-start;
+  gap: 0;
+  padding: 14px 18px 24px;
+}
+@supports (height: 1dvh) {
+  .home { --home: min(92vw, 620px, max(260px, 55dvh - 20px)); }
+}
+
+.home-top { align-items: center; width: var(--home); }
+.brand {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  font-size: calc(var(--home) * 0.042);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.brand .ant { width: 1.9em; height: 1.9em; }
+.home-pills {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  --chip-h: calc(var(--home) * 0.1);
+}
+.home-pills .icon.gear {
+  width: var(--chip-h);
+  height: var(--chip-h);
+  font-size: calc(var(--chip-h) * 0.5);
+}
+
+/* Khối đất chứa năm buồng. SVG do src/nest.js dựng; tỉ lệ 360:480 của viewBox
+   quyết định chiều cao của hình, nên chỉ cần đặt bề ngang.
+   `flex: 1` để khối đất nuốt hết chỗ thừa theo chiều dọc: trên máy màn hình cao
+   mà hẹp, bề ngang đã kịch 92vw nên hình không to thêm được — thà cho nền đất
+   trải dài còn hơn để hai dải trống trên dưới. */
+.nest {
+  display: grid;
+  flex: 1 1 auto;
+  /* Bám mép TRÊN, không căn giữa: mặt cỏ trong tranh phải nằm ngay đầu khối
+     đất, còn chỗ thừa thì dồn xuống dưới — nhìn ra đất sâu. */
+  place-items: start center;
+  width: var(--home);
+  margin-top: calc(var(--home) * 0.06);
+  /* Đúng màu mép dưới của assets/nest-bg.png, để phần kéo dài dưới tranh không
+     lộ ra một đường cắt ngang. */
+  background: #110b0a;
+  border-radius: 26px 26px 0 0;
+  overflow: hidden;
+}
+.nest svg { display: block; width: 100%; font-family: inherit; }
+
+/* Nút Play bám bề ngang tổ chứ không phải 86% màn hình. */
+.home .pill {
+  display: flex;
+  gap: 0.45em;
+  align-items: center;
+  justify-content: center;
+  width: var(--home);
+  padding: calc(var(--home) * 0.036) 24px;
+  margin-top: calc(var(--home) * 0.03);
+  font-size: calc(var(--home) * 0.055);
+}
+.home .pill .ant { width: 1.3em; height: 1.3em; }
+.home-links { margin-top: calc(var(--home) * 0.024); }

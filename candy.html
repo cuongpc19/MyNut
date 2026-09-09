@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ant Guard — kiến gác kẹo</title>
+<style>
+  :root {
+    --ink: #eef0f7; --muted: #8b93a8; --paper: #141826; --card: #1f2538; --line: #2e364d;
+    --accent: #ffc46b; --danger: #ff6b6b; --good: #6ee0b1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+    -webkit-user-select: none; user-select: none; touch-action: none;
+  }
+  header, footer { padding: 8px 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  header { border-bottom: 1px solid var(--line); }
+  footer { border-top: 1px solid var(--line); }
+  button { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 11px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--accent); color: #141826; border-color: var(--accent); font-weight: 700; }
+  .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+  .grow { flex: 1 1 auto; }
+  .note { color: var(--muted); font-size: 13px; }
+  .note b { color: var(--ink); font-weight: 600; }
+  #stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; padding: 8px 10px; }
+  svg { display: block; width: 100%; height: 100%; touch-action: none; }
+  .cell { stroke: rgba(10, 12, 20, 0.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .cell.mark { opacity: 0.28; }
+  .cell.press { filter: brightness(1.15); }
+  .cell.hint { stroke: #fff; stroke-width: 3; }
+  .border { fill: none; stroke: #141826; stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .zone { fill: #fff; opacity: 0.22; pointer-events: none; }
+  .zone.clash { fill: var(--danger); opacity: 0.45; }
+  .ring { fill: none; stroke: var(--danger); stroke-width: 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+  image { pointer-events: none; }
+  #done { color: var(--good); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <button data-size="6">6</button>
+  <button data-size="7">7</button>
+  <button data-size="8">8</button>
+  <button data-size="9">9</button>
+  <span class="sep"></span>
+  <button id="needy">Kiến phải có kẹo</button>
+  <button id="exact">Đúng một kiến</button>
+  <button id="mixed">Ba loại kiến</button>
+  <span class="grow"></span>
+  <button id="again">Bàn mới</button>
+</header>
+
+<div id="stage"><svg id="scene"></svg></div>
+
+<footer>
+  <span class="note" id="rule" style="flex: 1 1 100%; margin: 0;"></span>
+  <span id="score" class="note"></span>
+  <span id="done"></span>
+  <span class="grow"></span>
+  <button id="undo">Hoàn tác</button>
+  <button id="hint">Gợi ý</button>
+  <button id="show">Đáp án</button>
+</footer>
+
+<script type="module">
+import { makePuzzle, makeBoard, coverage, Solve, nextDeduction, regionsFromRecord } from "./src/candy.js";
+
+const COLOURS = ["#5fd4e8", "#ff7b6b", "#b9e06a", "#ff8fc6", "#ffc46b", "#f2ea6a",
+  "#9d8cff", "#6ee0b1", "#7ab5ff", "#ff9a5c", "#e3a7ff", "#d8b48a"];
+const EMPTY = 0, MARK = 1, ANT = 2;
+const scene = document.getElementById("scene");
+// Luật chốt: kẹo phải có kiến, còn kiến KHÔNG bắt buộc có kẹo — nới thế thì
+// người chơi phải nghĩ nhiều hơn (đo được: nhiều bàn bậc 3 hơn). Nút "Kiến
+// phải có kẹo" chỉ còn để so sánh.
+const view = { size: 7, mixed: false, exact: false, needy: false };
+const RULES = {
+  atLeast: "Mỗi màu đúng một kiến. <b>Mỗi viên kẹo phải có kiến đứng cạnh</b>. Hai kiến không đứng cạnh nhau. Không hàng, không cột.",
+  exact: "Mỗi màu đúng một kiến. <b>Mỗi viên kẹo có đúng một kiến đứng cạnh</b> — không bỏ ngỏ, không hai kiến tranh. Hai kiến không đứng cạnh nhau. Không hàng, không cột.",
+};
+const NEEDY = " <b>Kiến nào cũng phải đứng cạnh kẹo</b> — không có kẹo thì kiến buồn.";
+let pools = null, level = null, B = null, cell = null, history = [], hintCells = [], message = "", pressed = -1;
+
+// ------------------------------------------------------------------ luật
+
+const antsOn = () => cell.reduce((list, v, i) => (v === ANT ? [...list, i] : list), []);
+const isCandy = (i) => level.candies.includes(i);
+
+/** Lỗi đang có: kẹo hai kiến tranh, kiến đứng trong tầm kiến khác, vùng hai kiến. */
+function problems() {
+  const ants = antsOn();
+  const cov = coverage(B, ants);
+  const badCandy = view.exact ? level.candies.filter((c) => cov[c] > 1) : [];
+  const badAnt = new Set();
+  for (const i of ants) for (const j of ants) if (i !== j && (B.zone[i].includes(j))) { badAnt.add(i); badAnt.add(j); }
+  const perRegion = new Map();
+  for (const i of ants) perRegion.set(B.regionOf[i], (perRegion.get(B.regionOf[i]) || 0) + 1);
+  for (const i of ants) if (perRegion.get(B.regionOf[i]) > 1) badAnt.add(i);
+  // Kiến không có viên kẹo nào trong tầm: buồn, và bàn chưa xong.
+  const sad = new Set(view.needy ? ants.filter((i) => !B.zone[i].some((j) => isCandy(j))) : []);
+  return { badCandy, badAnt, sad, cov };
+}
+
+function solved() {
+  const ants = antsOn();
+  if (ants.length !== B.count) return false;
+  const { badCandy, badAnt, sad, cov } = problems();
+  return !badCandy.length && !badAnt.size && !sad.size && level.candies.every((c) => (view.exact ? cov[c] === 1 : cov[c] >= 1));
+}
+
+// -------------------------------------------------------------------- vẽ
+
+function draw() {
+  const { h, w } = B;
+  const parts = [];
+  const { badCandy, badAnt, sad, cov } = problems();
+  const ants = antsOn();
+
+  for (let i = 0; i < h * w; i++) {
+    const r = Math.floor(i / w), c = i % w;
+    const cls = ["cell"];
+    if (cell[i] === MARK) cls.push("mark");
+    if (i === pressed) cls.push("press");
+    if (hintCells.includes(i)) cls.push("hint");
+    parts.push(`<rect class="${cls.join(" ")}" x="${c}" y="${r}" width="1" height="1" rx="0.08" fill="${COLOURS[B.regionOf[i] % 12]}" data-i="${i}"/>`);
+  }
+  // Tầm gác của kiến đã đặt: sáng lên; chỗ hai tầm chồng lên kẹo thì đỏ.
+  // Luật gọn không cần khái niệm tầm gác, nên không vẽ — kẹo loé sáng là đủ.
+  if (view.exact) for (const i of ants)
+    for (const j of B.zone[i]) {
+      const r = Math.floor(j / w), c = j % w;
+      parts.push(`<rect class="zone${isCandy(j) && cov[j] > 1 ? " clash" : ""}" x="${c + 0.06}" y="${r + 0.06}" width="0.88" height="0.88" rx="0.12"/>`);
+    }
+  for (let i = 0; i < h * w; i++) {
+    const r = Math.floor(i / w), c = i % w, me = B.regionOf[i];
+    if (c + 1 < w && B.regionOf[i + 1] !== me) parts.push(`<line class="border" x1="${c + 1}" y1="${r}" x2="${c + 1}" y2="${r + 1}"/>`);
+    if (r + 1 < h && B.regionOf[i + w] !== me) parts.push(`<line class="border" x1="${c}" y1="${r + 1}" x2="${c + 1}" y2="${r + 1}"/>`);
+  }
+  // Kẹo: được gác đúng một kiến thì loé sáng, hai kiến tranh thì viền đỏ.
+  for (const i of level.candies) {
+    const r = Math.floor(i / w), c = i % w;
+    const sprite = (view.exact ? cov[i] === 1 : cov[i] >= 1) ? "candy-spark-192" : "candy-192";
+    parts.push(`<image href="assets/${sprite}.png" x="${c + 0.14}" y="${r + 0.14}" width="0.72" height="0.72"/>`);
+    if (badCandy.includes(i)) parts.push(`<rect class="ring" x="${c + 0.08}" y="${r + 0.08}" width="0.84" height="0.84" rx="0.14"/>`);
+  }
+  for (const i of ants) {
+    const r = Math.floor(i / w), c = i % w;
+    const face = sad.has(i) ? "ant-sad-512" : view.needy ? "ant-happy-512" : "ant-256";
+    parts.push(`<image href="assets/${face}.png" x="${c + 0.08}" y="${r + 0.04}" width="0.84" height="0.84"/>`);
+    if (badAnt.has(i)) parts.push(`<rect class="ring" x="${c + 0.06}" y="${r + 0.06}" width="0.88" height="0.88" rx="0.14"/>`);
+  }
+  // Loại kiến của vùng: dấu nhỏ ở ô đầu vùng (chỉ khi có nhiều loại).
+  if (view.mixed)
+    B.cells.forEach((list, g) => {
+      const i = list[0], r = Math.floor(i / w), c = i % w;
+      const glyph = { ring: "▣", plus: "✚", diamond: "◆" }[B.types[g]];
+      parts.push(`<text x="${c + 0.16}" y="${r + 0.34}" font-size="0.3" fill="#141826" opacity="0.8">${glyph}</text>`);
+    });
+
+  scene.setAttribute("viewBox", `-0.1 -0.1 ${w + 0.2} ${h + 0.2}`);
+  scene.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  scene.innerHTML = parts.join("");
+  const guarded = level.candies.filter((c) => (view.exact ? cov[c] === 1 : cov[c] >= 1)).length;
+  document.getElementById("score").innerHTML =
+    `<b>${ants.length}/${B.count}</b> kiến · <b>${guarded}/${level.candies.length}</b> kẹo có người gác · bậc ${level.rating}`;
+  document.getElementById("done").textContent = solved() ? "Xong! Kẹo nào cũng có người gác." : message;
+}
+
+// ------------------------------------------------------------------ nước đi
+
+function commit(changes) {
+  const undo = changes.filter(([i, v]) => cell[i] !== v).map(([i]) => [i, cell[i]]);
+  if (!undo.length) return;
+  for (const [i, v] of changes) cell[i] = v;
+  history.push(undo);
+  hintCells = [];
+  message = "";
+  draw();
+}
+
+/** Đặt kiến, kèm tắt đèn mọi ô mà kiến đó loại: cùng vùng, và trong tầm nhau. */
+function placeAnt(i) {
+  const changes = [[i, ANT]];
+  for (let j = 0; j < cell.length; j++) {
+    if (j === i || cell[j] !== EMPTY || isCandy(j)) continue;
+    if (B.regionOf[j] === B.regionOf[i] || B.zone[i].includes(j) || B.zone[j].includes(i)) changes.push([j, MARK]);
+  }
+  commit(changes);
+}
+
+function hint() {
+  const S = new Solve(B, level.candies, level.mode, level.needy);
+  for (const i of antsOn()) {
+    if (level.ants[B.regionOf[i]] !== i) { message = "Có kiến đặt sai — hoàn tác đã."; return draw(); }
+    S.cand[B.regionOf[i]] = [i];
+  }
+  const move = nextDeduction(S);
+  if (!move) { message = "Hết nước gợi ý."; return draw(); }
+  hintCells = move.cells;
+  message = move.cells.length === 1
+    ? `Kiến vùng này chắc chắn ở ô sáng viền (bậc ${move.rank}).`
+    : `Kiến vùng này chỉ còn ở mấy ô sáng viền (bậc ${move.rank}).`;
+  draw();
+}
+
+// ----------------------------------------------------------------- thao tác
+
+// Bấm một lần = tắt đèn ô, bấm đúp = đặt kiến, VUỐT qua nhiều ô = tắt đèn
+// hàng loạt — đúng ba thao tác của game chính. Dấu ✕ ghi ngay ở cú bấm đầu,
+// cú thứ hai trong nhịp bấm đúp thì đổi thành kiến.
+let lastTap = { i: -1, at: 0 };
+let drag = { last: -1, on: false };
+const cellUnder = (e) => {
+  const i = document.elementFromPoint(e.clientX, e.clientY)?.dataset?.i;
+  return i === undefined ? -1 : +i;
+};
+scene.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "mouse") e.preventDefault();
+  const i = cellUnder(e);
+  if (i < 0 || isCandy(i)) return;
+  scene.setPointerCapture(e.pointerId);
+  pressed = i;
+  drag = { last: i, on: false };
+  const now = performance.now();
+  if (e.button === 2 || (lastTap.i === i && now - lastTap.at < 320)) {
+    lastTap = { i: -1, at: 0 };
+    cell[i] === ANT ? commit([[i, EMPTY]]) : placeAnt(i);
+    return;
+  }
+  lastTap = { i, at: now };
+  if (cell[i] === ANT) return draw();
+  commit([[i, cell[i] === EMPTY ? MARK : EMPTY]]);
+});
+scene.addEventListener("pointermove", (e) => {
+  if (drag.last < 0 || e.buttons === 0) return;
+  const i = cellUnder(e);
+  if (i < 0 || i === drag.last) return;
+  if (!drag.on) { drag.on = true; lastTap = { i: -1, at: 0 }; } // kéo thì không còn là bấm đúp
+  drag.last = i;
+  if (!isCandy(i) && cell[i] === EMPTY) commit([[i, MARK]]);
+});
+const lift = () => { pressed = -1; drag = { last: -1, on: false }; draw(); };
+scene.addEventListener("pointerup", lift);
+scene.addEventListener("pointercancel", lift);
+scene.addEventListener("contextmenu", (e) => e.preventDefault());
+
+document.getElementById("undo").onclick = () => {
+  const step = history.pop();
+  if (!step) return;
+  for (const [i, v] of step) cell[i] = v;
+  hintCells = []; message = ""; draw();
+};
+document.getElementById("hint").onclick = hint;
+document.getElementById("show").onclick = () => {
+  cell = cell.map((v, i) => (level.ants.includes(i) ? ANT : isCandy(i) ? EMPTY : MARK));
+  history = []; hintCells = []; draw();
+};
+document.getElementById("again").onclick = () => load();
+document.getElementById("mixed").onclick = () => { view.mixed = !view.mixed; load(); };
+document.getElementById("exact").onclick = () => { view.exact = !view.exact; load(); };
+document.getElementById("needy").onclick = () => { view.needy = !view.needy; load(); };
+for (const b of document.querySelectorAll("[data-size]")) b.onclick = () => { view.size = +b.dataset.size; load(); };
+
+// ------------------------------------------------------------------ vào màn
+
+let seed = Math.floor(Math.random() * 1e6);
+async function load() {
+  pools ??= await (await fetch("data/pools.json")).json();
+  const records = [1, 2, 3].flatMap((r) => pools[`${view.size}x${r}`] || []);
+  level = null;
+  // Có ?seed= thì lưới vùng cũng chọn theo hạt, để hai lần mở ra cùng một bàn.
+  const fixedPick = new URLSearchParams(location.search).get("seed");
+  for (let tries = 0; tries < 200 && !level; tries++) {
+    const pick = fixedPick ? (seed + tries) % records.length : Math.floor(Math.random() * records.length);
+    level = makePuzzle(regionsFromRecord(records[pick], view.size), ++seed,
+      { mixed: view.mixed, mode: view.exact ? "exact" : "atLeast", needy: view.needy });
+  }
+  if (!level) { message = "Không sinh nổi bàn."; return; }
+  B = makeBoard(level.regions, level.types);
+  cell = new Array(B.h * B.w).fill(EMPTY);
+  history = []; hintCells = []; message = ""; pressed = -1;
+  for (const b of document.querySelectorAll("[data-size]")) b.setAttribute("aria-pressed", String(+b.dataset.size === view.size));
+  document.getElementById("mixed").setAttribute("aria-pressed", String(view.mixed));
+  document.getElementById("exact").setAttribute("aria-pressed", String(view.exact));
+  document.getElementById("needy").setAttribute("aria-pressed", String(view.needy));
+  document.getElementById("rule").innerHTML = RULES[view.exact ? "exact" : "atLeast"] + (view.needy ? NEEDY : "");
+  draw();
+  if (new URLSearchParams(location.search).has("show")) document.getElementById("show").click();
+}
+const q = new URLSearchParams(location.search);
+if (q.get("n")) view.size = +q.get("n");
+if (q.has("mixed")) view.mixed = true;
+if (q.has("exact")) view.exact = true;
+if (q.has("needy")) view.needy = true;
+if (q.get("seed")) seed = +q.get("seed");
+load();
+</script>
+</body>
+</html>
