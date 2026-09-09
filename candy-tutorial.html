@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiến gác kẹo — bài hướng dẫn</title>
+<link rel="stylesheet" href="src/style.css">
+<style>
+  /* Trang thử: chỉ dựng đủ khung để chạy đúng bài hướng dẫn, không có tổ kiến,
+     không có kẹo làm mạng, không có tiến trình. Mọi thứ khác lấy từ style.css
+     thật, nên nhìn ra sao ở đây thì trong game cũng ra vậy. */
+  body { margin: 0; }
+  .play { min-height: 100dvh; }
+  /* Trang thật giấu thanh tiêu đề trong lúc hướng dẫn; ở đây không có nút quay
+     lại nên chỉ cần canh giữa cho ảnh chụp khỏi lệch. */
+  .bar { display: block; text-align: center; }
+  .devbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; gap: 8px; align-items: center; justify-content: center;
+    padding: 8px; background: rgba(8, 11, 20, 0.9); border-top: 1px solid var(--line, #2e364d);
+    font: 12px system-ui, sans-serif; color: var(--muted, #8b93a8);
+  }
+  .devbar button { font: inherit; }
+  .devbar b { color: var(--ink, #eef0f7); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<section class="play screen tutorial" id="play">
+  <header class="bar">
+    <h2 id="title" class="title">Cách chơi</h2>
+  </header>
+
+  <div class="slot slot-top">
+    <div id="coach-top" class="coach" hidden>
+      <strong id="coach-title" hidden></strong>
+      <p id="coach-text"></p>
+    </div>
+  </div>
+
+  <div id="board" class="board" role="grid" aria-label="Bàn hướng dẫn"></div>
+
+  <div class="slot slot-bottom">
+    <div id="coach-bottom" class="coach bottom" hidden><p id="coach-hint"></p></div>
+    <button id="btn-apply" class="primary pill apply" hidden>Got it</button>
+  </div>
+
+  <p id="status" class="hint-text"></p>
+</section>
+
+<div class="devbar">
+  <span>bước <b id="dev-step">1/9</b></span>
+  <span id="dev-id"></span>
+  <button id="dev-restart">Học lại</button>
+  <button id="dev-skip">Bước sau</button>
+  <button id="dev-solve">Giải nốt</button>
+  <button id="dev-lang">EN / VI</button>
+</div>
+
+<script type="module">
+import { BoardView } from "./src/boardview.js";
+import { CandyBoard, CAT, MARK, EMPTY } from "./src/candyboard.js";
+import { Tutorial, tutorialPuzzle, planTutorial } from "./src/candytutorial.js";
+import { T, setLocale, getLocale } from "./src/strings.js";
+
+const $ = (id) => document.getElementById(id);
+const FLASH_MS = 420;
+
+const ui = {
+  coachTop: $("coach-top"), coachTitle: $("coach-title"), coachText: $("coach-text"),
+  coachBottom: $("coach-bottom"), coachHint: $("coach-hint"), coachNext: $("btn-apply"),
+  status: $("status"),
+};
+
+let puzzle = null, board = null, tutorial = null, shownStep = null, flashing = false;
+
+const view = new BoardView($("board"), {
+  allowMove: (r, c, kind) => !tutorial || (!flashing && tutorial.allows(r, c, kind)),
+  onChange: () => onChange(),
+});
+// Bài hướng dẫn dạy người chơi tự tắt đèn, nên tuyệt đối không tắt hộ.
+view.autoX = false;
+
+/** Cho một phần tử chạy lại animation vào — gỡ class rồi ép reflow. */
+function replay(node, className) {
+  node.classList.remove(className);
+  void node.offsetWidth;
+  node.classList.add(className);
+}
+
+function start() {
+  puzzle = tutorialPuzzle();
+  board = new CandyBoard(puzzle);
+  view.mount(board);
+  tutorial = new Tutorial(puzzle, board);
+  shownStep = null;
+  view.locked = false;
+  ui.status.textContent = "";
+  render();
+}
+
+function render() {
+  view.clearHighlights();
+  view.setFocus(null);
+  view.hideHand();
+  $("dev-step").textContent = `${Math.min(tutorial.index + 1, tutorial.steps.length)}/${tutorial.steps.length}`;
+  $("dev-id").textContent = tutorial.step.id;
+
+  if (tutorial.done) {
+    ui.coachTop.hidden = ui.coachBottom.hidden = ui.coachNext.hidden = true;
+    view.locked = true;
+    ui.status.innerHTML = `<b>${T.guard.mastered}</b>`;
+    return;
+  }
+
+  const step = tutorial.step;
+  const pending = tutorial.pending();
+
+  ui.coachTop.hidden = false;
+  ui.coachTitle.hidden = !step.title;
+  ui.coachTitle.textContent = step.title || "";
+  ui.coachText.innerHTML = step.top;
+  ui.coachNext.hidden = !step.button;
+  if (step.button) ui.coachNext.textContent = step.button;
+
+  ui.coachBottom.hidden = !step.bottom;
+  ui.coachBottom.classList.toggle("tappable", Boolean(step.free));
+  ui.coachHint.innerHTML = step.bottom || "";
+
+  if (shownStep !== step.id) {
+    shownStep = step.id;
+    replay(ui.coachTop, "enter");
+    if (step.bottom) replay(ui.coachBottom, "enter");
+    if (step.focus) replay(view.handEl, "enter");
+  }
+
+  view.render();
+  if (step.highlight) view.highlight(step.highlight, "hint");
+  if (step.focus) view.setFocus(step.focus, pending.length ? step.ring : null);
+
+  if (!pending.length) view.hideHand();
+  else if (step.ring) view.showHand([step.ring], "tap");
+  else if (step.gesture === "swipe") view.showHand(pending, "swipe");
+}
+
+function onChange() {
+  if (!tutorial.checkProgress()) return render();
+  flashing = true;
+  view.clearHighlights();
+  view.setFocus(null);
+  view.hideHand();
+  $("board").classList.add("flash");
+  setTimeout(() => {
+    $("board").classList.remove("flash");
+    flashing = false;
+    tutorial.advance();
+    render();
+  }, FLASH_MS);
+}
+
+ui.coachNext.addEventListener("click", () => {
+  if (!tutorial?.step.button) return;
+  tutorial.advance();
+  render();
+});
+
+// ------------------------------------------------------------- nút thử
+
+$("dev-restart").onclick = () => start();
+
+// Làm hộ đúng những gì bước hiện tại đòi, rồi sang bước sau — để xem nhanh
+// từng thẻ mà không phải bấm lại từ đầu.
+$("dev-skip").onclick = () => {
+  const step = tutorial.step;
+  if (step.needs) board.apply(step.needs.cells.map(([r, c]) => [r, c, step.needs.value]));
+  else if (step.free) solve();
+  tutorial.advance();
+  view.render();
+  render();
+};
+
+function solve() {
+  const changes = [];
+  for (let r = 0; r < puzzle.size; r++)
+    for (let c = 0; c < puzzle.size; c++) {
+      if (puzzle.isCandy(r, c)) continue;
+      changes.push([r, c, puzzle.antSet.has(r * puzzle.size + c) ? CAT : MARK]);
+    }
+  board.apply(changes);
+  view.render();
+}
+
+$("dev-solve").onclick = () => { solve(); onChange(); };
+
+$("dev-lang").onclick = async () => {
+  await setLocale(getLocale() === "vi" ? "en" : "vi");
+  tutorial.relocalize();
+  shownStep = null;
+  render();
+};
+
+// Có ?step=n thì nhảy thẳng tới bước đó, để chụp ảnh từng thẻ.
+const jump = Number(new URLSearchParams(location.search).get("step") || 0);
+const lang = new URLSearchParams(location.search).get("lang");
+if (lang) await setLocale(lang, { remember: false });
+start();
+for (let i = 1; i < jump && !tutorial.done; i++) $("dev-skip").click();
+
+// Đường tắt cho tools/shot_tutorial.mjs: bắn thẳng vào đây thay vì mô phỏng tay.
+globalThis.__tutorial = { get tutorial() { return tutorial; }, get board() { return board; }, plan: () => planTutorial(puzzle), render };
+</script>
+</body>
+</html>

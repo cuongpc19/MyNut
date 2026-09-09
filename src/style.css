@@ -313,6 +313,42 @@ main {
   background: var(--ant) center / contain no-repeat;
 }
 
+/* ----------------------------------------------------- viên kẹo trên ô
+
+   Luật kiến gác kẹo: ô kẹo là manh mối, không phải chỗ chơi. Nó không bao giờ
+   bị tắt đèn nên phải tự nổi lên khỏi nền vùng — dùng cùng viền trong như ô có
+   kiến, chỉ khác màu, để hai thứ đọc được là "ô đặc biệt" cùng một kiểu.
+
+   Lớp tên "has-candy" chứ không phải "candy": "candy" đã là lớp của viên kẹo
+   đứng lẻ trong thanh HUD, mà lớp ấy đặt display/width/background — dính vào ô
+   bàn cờ là ô vỡ layout.
+
+   Kẹo đã có kiến đứng cạnh thì đổi sang hình loé sáng và nhích lên một nhịp:
+   đó là toàn bộ phản hồi cho luật 2, nên nó phải thấy rõ mà không cần chữ. */
+.cell.has-candy {
+  cursor: default;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.cell.has-candy::after {
+  content: "";
+  position: relative;
+  z-index: 1;
+  width: 1.05em;
+  height: 1.05em;
+  background: var(--candy) center / contain no-repeat;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cell.has-candy.guarded {
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85);
+}
+
+.cell.has-candy.guarded::after {
+  background-image: var(--candy-spark);
+  transform: scale(1.12);
+}
+
 /* Đặt kiến: hiện ngay ở cỡ thật rồi bung quá cỡ và nảy về — cú bấm đúp phải
    thấy "đã tay". Easing để trơn, độ nảy nằm hết trong keyframe; trộn cả hai thì
    đoạn cuối bị giật. */
@@ -985,7 +1021,12 @@ button.pill:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 3p
    (đã bị phủ tối), đúng như bản gốc. */
 /* Rộng đúng bằng bàn cờ: chữ xuống dòng thành một khối đặc, thay vì trải
    một dòng mỏng rộng hơn cả bàn cờ. */
-.slot { position: relative; width: var(--board); }
+/* Ô chừa rộng bằng cả cột chứ không bằng bàn cờ. Thẻ hướng dẫn rộng tới 460px
+   (640px trên desktop) trong khi bàn cờ lúc hướng dẫn chỉ khoảng 300px: ô chừa
+   hẹp hơn thẻ thì cặp left:0/right:0 bị quá ràng buộc, margin auto về 0, và cả
+   thẻ trôi sang phải rồi tràn ra ngoài mép màn hình. Rộng bằng cột thì thẻ và
+   bàn cờ cùng canh giữa trang nên vẫn thẳng hàng nhau. */
+.slot { position: relative; width: 100%; }
 /* Canh giữa bằng left/right + margin auto, KHÔNG dùng transform: luật
    `button.pill:active` đặt transform riêng và thắng về độ ưu tiên — nếu định vị
    bằng translateX thì lúc đè chuột nút văng sang một bên, mouseup rơi ra ngoài

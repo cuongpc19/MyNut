@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiến gác kẹo — chơi thử hai bộ</title>
+<link rel="stylesheet" href="src/style.css">
+<style>
+  /* Trang so hai bộ level. Không có tổ kiến, không có kẹo làm mạng, không lưu
+     tiến trình — chỉ để đi dọc hai đường cong và xem chỗ nào gãy. */
+  body { margin: 0; }
+  .play { min-height: 100dvh; padding-bottom: 96px; }
+  .bar { display: block; text-align: center; }
+  .devbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;
+    padding: 8px; background: rgba(8, 11, 20, 0.94); border-top: 1px solid var(--line);
+    font: 12px system-ui, sans-serif; color: var(--muted);
+  }
+  .devbar button, .devbar select { font: inherit; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  .devbar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .facts { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+    font: 13px system-ui, sans-serif; color: var(--muted); }
+  .facts b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .note { min-height: 20px; text-align: center; color: var(--muted); font-size: 13px; }
+  .note.win { color: var(--good); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<section class="play screen" id="play">
+  <header class="bar"><h2 id="title" class="title">Đêm 1</h2></header>
+  <p class="facts" id="facts"></p>
+  <div id="board" class="board" role="grid" aria-label="Bàn chơi"></div>
+  <p class="note" id="note"></p>
+</section>
+
+<div class="devbar">
+  <button data-set="easy">Bộ nhẹ</button>
+  <button data-set="hard">Bộ nặng</button>
+  <button id="prev">&larr;</button>
+  <select id="pick"></select>
+  <button id="next">&rarr;</button>
+  <button id="undo">Hoàn tác</button>
+  <button id="hint">Gợi ý</button>
+  <button id="solve">Đáp án</button>
+</div>
+
+<script type="module">
+import { BoardView } from "./src/boardview.js";
+import { CandyPuzzle, CandyBoard, CAT, MARK, EMPTY } from "./src/candyboard.js";
+import { makeBoard, Solve, nextDeduction } from "./src/candy.js";
+
+const $ = (id) => document.getElementById(id);
+const pools = await (await fetch("data/candy-pools.json")).json();
+const q = new URLSearchParams(location.search);
+let course = q.get("set") === "hard" ? "hard" : "easy";
+let index = Math.max(1, Math.min(pools.sets[course].length, Number(q.get("n") || 1)));
+let puzzle = null, board = null;
+
+const view = new BoardView($("board"), { onChange: () => refresh() });
+
+$("pick").innerHTML = pools.sets[course]
+  .map((row) => `<option value="${row.n}">Đêm ${row.n} — ${row.size}×${row.size} bậc ${row.r}</option>`).join("");
+
+function load() {
+  const entry = pools.sets[course][index - 1];
+  puzzle = new CandyPuzzle(entry, entry.size);
+  board = new CandyBoard(puzzle);
+  view.mount(board);
+  $("title").textContent = `Đêm ${entry.n} · bộ ${course === "easy" ? "nhẹ" : "nặng"}`;
+  $("pick").value = String(entry.n);
+  for (const b of document.querySelectorAll("[data-set]"))
+    b.setAttribute("aria-pressed", String(b.dataset.set === course));
+  $("note").textContent = "";
+  $("note").classList.remove("win");
+  refresh();
+}
+
+function refresh() {
+  const entry = pools.sets[course][index - 1];
+  const guarded = puzzle.candyCells().filter(([r, c]) => board.guarded(r, c)).length;
+  $("facts").innerHTML =
+    `<span>bàn <b>${entry.size}×${entry.size}</b></span>` +
+    `<span>bậc <b>${entry.r}</b></span>` +
+    `<span><b>${entry.st}</b> bước suy luận</span>` +
+    `<span>kiến <b>${board.ants().length}/${puzzle.regionCount}</b></span>` +
+    `<span>kẹo có người gác <b>${guarded}/${puzzle.candies.length}</b></span>`;
+  if (board.isSolved()) {
+    $("note").textContent = "Xong. Kẹo nào cũng có người gác.";
+    $("note").classList.add("win");
+  }
+}
+
+/** Gợi ý: hỏi đúng bộ giải của luật, và chỉ hỏi khi thế cờ trên bàn còn đúng. */
+$("hint").onclick = () => {
+  const B = makeBoard(puzzle.regions, new Array(puzzle.regionCount).fill("ring"));
+  const S = new Solve(B, puzzle.candies, "atLeast", false);
+  for (const [r, c] of board.ants()) {
+    const i = r * puzzle.size + c;
+    if (!puzzle.antSet.has(i)) { $("note").textContent = "Có kiến đặt sai — hoàn tác đã."; return; }
+    S.cand[puzzle.regionAt(r, c)] = [i];
+  }
+  const move = nextDeduction(S);
+  if (!move) { $("note").textContent = "Hết nước gợi ý."; return; }
+  view.clearHighlights();
+  view.highlight(move.cells.map((i) => [Math.floor(i / puzzle.size), i % puzzle.size]), "hint");
+  $("note").textContent = move.cells.length === 1
+    ? `Kiến màu này chắc chắn ở ô đang sáng (bậc ${move.rank}).`
+    : `Kiến màu này chỉ còn ở mấy ô đang sáng (bậc ${move.rank}).`;
+};
+
+$("solve").onclick = () => {
+  const changes = [];
+  for (let r = 0; r < puzzle.size; r++)
+    for (let c = 0; c < puzzle.size; c++) {
+      if (puzzle.isCandy(r, c)) continue;
+      changes.push([r, c, puzzle.antSet.has(r * puzzle.size + c) ? CAT : MARK]);
+    }
+  board.apply(changes);
+  view.render();
+  refresh();
+};
+
+$("undo").onclick = () => { board.undo(); view.render(); refresh(); };
+$("prev").onclick = () => { index = Math.max(1, index - 1); load(); };
+$("next").onclick = () => { index = Math.min(pools.sets[course].length, index + 1); load(); };
+$("pick").onchange = (e) => { index = Number(e.target.value); load(); };
+for (const b of document.querySelectorAll("[data-set]"))
+  b.onclick = () => { course = b.dataset.set; load(); };
+if (q.has("show")) setTimeout(() => $("solve").click(), 50);
+
+load();
+</script>
+</body>
+</html>

@@ -81,6 +81,12 @@ export class BoardView {
         cell.style.background = `var(--g${board.puzzle.colourOf(regions[r][c])})`;
         cell.dataset.r = r;
         cell.dataset.c = c;
+        // Luật kiến gác kẹo: ô kẹo là manh mối, không phải chỗ chơi — khoá luôn
+        // để mọi thao tác bỏ qua nó thay vì phải nhớ kiểm ở từng chỗ.
+        if (board.puzzle.isCandy?.(r, c)) {
+          cell.classList.add("has-candy");
+          this.fixed.add(`${r},${c}`);
+        }
         this.el.append(cell);
         row.push(cell);
       }
@@ -112,6 +118,10 @@ export class BoardView {
         node.classList.toggle("cat", value === CAT);
         node.classList.toggle("conflict", clashing.has(`${r},${c}`));
         node.classList.toggle("wrong", this.wrong.has(`${r},${c}`));
+        // Kẹo đã có kiến đứng cạnh thì đổi sang hình loé sáng. Đây là phản hồi
+        // duy nhất cho luật 2, nên nó phải cập nhật ở MỌI lần vẽ chứ không chỉ
+        // khi chính ô đó đổi giá trị — ô kẹo không bao giờ đổi giá trị.
+        if (node.classList.contains("has-candy")) node.classList.toggle("guarded", board.guarded(r, c));
       }
     }
   }
@@ -215,20 +225,32 @@ export class BoardView {
     if (!this.validate(r, c)) return this.onReject(r, c);
     const changes = [[r, c, CAT]];
     if (this.autoX) {
-      const n = board.size;
-      const region = board.puzzle.regionAt(r, c);
-      for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-          if (i === r && j === c) continue;
-          const blocked = i === r || j === c || board.puzzle.regionAt(i, j) === region ||
-            (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1);
-          if (blocked && board.get(i, j) === EMPTY) changes.push([i, j, MARK]);
-        }
-      }
+      // Bàn nào tự biết mình loại những ô nào thì hỏi nó (luật kiến gác kẹo:
+      // cùng màu + tám ô quanh). Bàn cũ chưa có hàm ấy nên vẫn dùng luật
+      // hàng/cột/màu/kề ở dưới. Nhờ vậy hai lõi luật sống chung được.
+      const blocked = board.blockedCells
+        ? board.blockedCells(r, c)
+        : this.legacyBlocked(r, c);
+      for (const [i, j] of blocked) if (board.get(i, j) === EMPTY) changes.push([i, j, MARK]);
     }
     this.commit(changes);
     this.origin = null; // sóng đã phát xong, mấy ô bấm lẻ sau đó không lệch pha
     this.pop(r, c);
+  }
+
+  /** Ô bị một con mèo loại theo luật cũ: cùng hàng, cùng cột, cùng vùng, hoặc kề. */
+  legacyBlocked(r, c) {
+    const board = this.board;
+    const n = board.size;
+    const region = board.puzzle.regionAt(r, c);
+    const out = [];
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j < n; j++) {
+        if (i === r && j === c) continue;
+        if (i === r || j === c || board.puzzle.regionAt(i, j) === region ||
+          (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1)) out.push([i, j]);
+      }
+    return out;
   }
 
   /** Nhịp bung của con kiến vừa đặt, kèm ảnh kiến vui một lát rồi về ảnh

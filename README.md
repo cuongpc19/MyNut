@@ -13,11 +13,20 @@ buộc. Đọc nó trước.
 
 ## Trạng thái
 
-- `candy.html` — bản chơi thử luật mới, hoàn chỉnh về luật: sinh bàn tại chỗ từ
-  `data/pools.json`, gợi ý, đáp án. Luật, bộ sinh, bộ giải: `src/candy.js`.
+Luật mới đã có đủ lõi, bài hướng dẫn và kho level; việc còn lại là nối vào vòng
+chơi chính.
+
+- `src/candy.js` — luật, bộ sinh, bộ giải 3 bậc. `src/candyboard.js` — mô hình
+  bàn cho vòng chơi.
+- `src/candytutorial.js` — bài hướng dẫn 9 bước, kịch bản suy từ chính luật
+  chơi. Chơi thử ở `candy-tutorial.html`.
+- `data/candy-pools.json` — **hai bộ 60 màn**, ba màn đầu giống hệt nhau, từ màn
+  4 một bộ nặng tay hơn một bộ. Chơi thử ở `candy-course.html`, dựng lại bằng
+  `node tools/build_candy_pools.mjs`.
+- `candy.html` — bàn nháp để thử biến thể luật (`exact`, `needy`, ba loại kiến).
 - `index.html` — vẫn là game cũ (luật hàng/cột) với phần vỏ sẽ giữ lại: trang
   chủ tổ kiến, chương năm đêm, kẹo làm tiền tệ, âm thanh, hai ngôn ngữ.
-- Kho level cho luật mới **chưa dựng** — cách dựng ở CLAUDE.md §4.
+  `src/progression.js` chưa đọc kho mới — đó là việc kế tiếp.
 
 ## Chạy
 
@@ -25,17 +34,21 @@ Cần một server tĩnh vì trang nạp module ES:
 
 ```bash
 python -m http.server 8124
-# http://localhost:8124/index.html  — game cũ
-# http://localhost:8124/candy.html  — luật mới, chơi thử
+# http://localhost:8124/index.html          — game cũ
+# http://localhost:8124/candy-tutorial.html — bài hướng dẫn luật mới
+# http://localhost:8124/candy-course.html   — hai bộ level, chọn bộ và đêm
+# http://localhost:8124/candy.html          — bàn nháp thử biến thể luật
 ```
 
 Kiểm tra không cần trình duyệt:
 
 ```bash
-node tools/flow_test.mjs      # tutorial, bộ chọn màn, kho bàn, màn đặc biệt (luật cũ)
-node tools/smoke.mjs          # logic bàn cờ trên 100 bàn 9×9 (luật cũ)
-node tools/probe_candy.mjs    # luật mới: tỉ lệ sinh, số kẹo, độ khó, kiểm duy nhất
-node tools/build_single.mjs   # gói thành một file dist/ant-guard.html
+node tools/candy_flow_test.mjs   # LUẬT MỚI: bàn dạy, nhịp dạy, và cả 120 màn trong kho
+node tools/build_candy_pools.mjs # dựng lại data/candy-pools.json (~4 phút)
+node tools/probe_candy.mjs       # luật mới: tỉ lệ sinh, số kẹo, độ khó, kiểm duy nhất
+node tools/flow_test.mjs         # luật cũ: tutorial, bộ chọn màn, kho bàn, màn đặc biệt
+node tools/smoke.mjs             # luật cũ: logic bàn cờ trên 100 bàn 9×9
+node tools/build_single.mjs      # gói thành một file dist/ant-guard.html
 ```
 
 ## Chép từ Colodoku những gì, và cố ý bỏ những gì
