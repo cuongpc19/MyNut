@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Nut — chơi thử</title>
+<link rel="stylesheet" href="src/style.css">
+<style>
+  /* Mục lục cho bản chạy trên GitHub Pages. Không phải màn hình trong game,
+     nên dựng riêng ở đây chứ không nhét thêm trạng thái vào style.css. */
+  body { margin: 0; }
+  .hub { max-width: 640px; margin: 0 auto; padding: 28px 18px 60px; }
+  .hub h1 { display: flex; gap: 0.45em; align-items: center; margin: 0 0 4px;
+    font-size: 26px; letter-spacing: 0.03em; text-transform: uppercase; }
+  .hub h1 .ant { width: 1.5em; height: 1.5em; }
+  .hub .rule { margin: 0 0 26px; color: var(--muted); font-size: 15px; line-height: 1.55; }
+  .hub .rule b { color: var(--ink); }
+  .card { display: block; margin: 0 0 12px; padding: 16px 18px; color: inherit;
+    text-decoration: none; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; transition: border-color 0.15s, transform 0.1s; }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card strong { display: block; margin-bottom: 3px; font-size: 17px; }
+  .card span { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .hub footer { margin-top: 26px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .hub footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main class="hub">
+  <h1><i class="ant"></i>My Nut</h1>
+  <p class="rule">
+    Luật: <b>mỗi màu một kiến gác</b>. <b>Kẹo nào cũng phải có kiến đứng cạnh</b>
+    (tám ô quanh, kể cả chéo). <b>Hai kiến không đứng cạnh nhau.</b>
+    Không luật hàng, không luật cột — kẹo là manh mối duy nhất.
+  </p>
+
+  <a class="card" href="candy-tutorial.html">
+    <strong>Bài hướng dẫn</strong>
+    <span>Chín bước dạy đủ ba luật, bàn 5×5. Thêm <code>?lang=en</code> để xem bản tiếng Anh.</span>
+  </a>
+
+  <a class="card" href="candy-course.html">
+    <strong>Hai bộ level</strong>
+    <span>Mỗi bộ 60 đêm, ba đêm đầu giống hệt nhau, từ đêm 4 một bộ nặng tay hơn.
+      Chọn bộ và đêm ở thanh dưới; có nút gợi ý và đáp án.</span>
+  </a>
+
+  <a class="card" href="candy.html">
+    <strong>Bàn nháp</strong>
+    <span>Sinh bàn tại chỗ để thử biến thể luật chưa dùng: kẹo có đúng một kiến gác,
+      kiến bắt buộc phải có kẹo, ba loại kiến với tầm gác khác nhau.</span>
+  </a>
+
+  <a class="card" href="index.html">
+    <strong>Game cũ</strong>
+    <span>Luật hàng/cột của bản trước. Giữ lại vì phần vỏ — trang chủ tổ kiến,
+      chương năm đêm, kẹo làm tiền tệ — sẽ dùng tiếp cho luật mới.</span>
+  </a>
+
+  <footer>
+    Mã nguồn: <a href="https://github.com/cuongpc19/MyNut">github.com/cuongpc19/MyNut</a>.
+    Ghi chú bàn giao ở <a href="https://github.com/cuongpc19/MyNut/blob/main/CLAUDE.md">CLAUDE.md</a>.
+  </footer>
+</main>
+</body>
+</html>
